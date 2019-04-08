@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace MqttTimer
 {
@@ -13,6 +14,10 @@ namespace MqttTimer
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddHostedService<MqttTimerService>();
+                })
+                .ConfigureLogging((hostContext, logging) =>
+                {
+                    logging.AddConsole();
                 });
 
             await hostBuilder.RunConsoleAsync();
