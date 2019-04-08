@@ -1,24 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using IMQTTClientRx.Service;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
 namespace MqttTimer
 {
     public class MqttTimerService : IHostedService
     {
-        private readonly IMQTTService _mqttService;
+        //private readonly IMQTTService _mqttService;
+        private readonly IConfiguration _configuration;
         private readonly ILogger _logger;
 
         public MqttTimerService(
-            IMQTTService mqttService,
+            //IMQTTService mqttService,
+            IConfiguration configuration,
             ILogger<MqttTimerService> logger)
         {
-            _mqttService = mqttService;
+            //_mqttService = mqttService;
+            _configuration = configuration;
             _logger = logger;
         }
 
@@ -42,7 +42,7 @@ namespace MqttTimer
         {
             _logger.LogInformation("Connecting to MQTT Broker");
 
-
+            var brokerUri = new Uri(_configuration.GetValue<string>("BROKER_URL"));
         }
     }
 }
