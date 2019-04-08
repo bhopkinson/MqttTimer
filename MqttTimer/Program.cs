@@ -7,7 +7,7 @@ namespace MqttTimer
 {
     public class Program
     {
-        static async Task Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var hostBuilder = new HostBuilder()
                 .ConfigureServices((hostContext, services) =>
