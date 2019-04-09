@@ -1,10 +1,11 @@
 ﻿using System.Threading.Tasks;
-using IMQTTClientRx.Service;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using MQTTClientRx.Service;
+using MQTTnet;
+using MQTTnet.Client;
+using MQTTnet.Extensions.ManagedClient;
 
 namespace MqttTimer
 {
@@ -16,7 +17,7 @@ namespace MqttTimer
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddHostedService<MqttTimerService>();
-                    services.AddSingleton<IMQTTService>(new MQTTService());
+                    services.AddSingleton(new MqttFactory().CreateManagedMqttClient());
                 })
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
