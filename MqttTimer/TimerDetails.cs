@@ -14,6 +14,6 @@ namespace MqttTimer
 
         public DateTimeOffset TriggerDateTimeOffset => DateTimeOffset.FromUnixTimeSeconds(UnixTriggerTimeSeconds);
 
-        public long DelaySecondsFromNow() => UnixTriggerTimeSeconds - DateTimeOffset.Now.ToUnixTimeSeconds();
+        public long DelaySecondsFromNow() => UnixTriggerTimeSeconds - DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     }
 }

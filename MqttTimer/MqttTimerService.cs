@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Client;
+using MQTTnet.Diagnostics;
 using MQTTnet.Extensions.ManagedClient;
 using Newtonsoft.Json.Linq;
 
@@ -37,7 +38,9 @@ namespace MqttTimer
 
             RegisterEvent();
             await StartMqttClient();
-            await SubscribeToTopics();
+            await SubscribeToTopic("mqtttimer/+/start");
+            await SubscribeToTopic("mqtttimer/+/stop");
+
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
@@ -59,6 +62,10 @@ namespace MqttTimer
             try
             {
                 var timerDetails = GetTimerDetails(e.ApplicationMessage);
+                if (timerDetails == null)
+                {
+                    return;
+                }
 
                 _logger.LogInformation($"{timerDetails.Command.ToString()} command received for {timerDetails.Name} timer");
 
@@ -112,7 +119,7 @@ namespace MqttTimer
             try
             {
                 var timerDetails = (TimerDetails)stateInfo;
-                var topic = $"mqttTimer/{timerDetails.Name}";
+                var topic = $"mqtttimer/{timerDetails.Name}";
 
                 _logger.LogInformation($"Timer callback for {timerDetails.Name} called.");
                 _logger.LogInformation($"Publishing payload '{timerDetails.ResponsePayload}' to topic {topic}");
@@ -138,7 +145,7 @@ namespace MqttTimer
         {
             _logger.LogInformation("Starting Mqtt Client.");
 
-            var brokerUrl = _configuration.GetValue<string>("BROKER_URL");
+            var brokerUrl = _configuration.GetValue<string>("HOST");
 
             _logger.LogInformation($"Connecting to broker '{brokerUrl}'");
 
@@ -152,18 +159,18 @@ namespace MqttTimer
             await _mqttClient.StartAsync(mqttManagedClientOptions);
         }
 
-        private async Task SubscribeToTopics()
+        private async Task SubscribeToTopic(string topic)
         {
-            _logger.LogInformation("Subscribing to topic 'mqttTimer/+/start'");
-            _logger.LogInformation("Subscribing to topic 'mqttTimer/+/stop'");
+            _logger.LogInformation($"Subscribing to topic '{topic}'");
 
-            var topicFilter = new TopicFilterBuilder()
-                .WithTopic("mqttTimer/+/start")
-                .WithTopic("mqttTimer/+/stop")
+            var startTopicFilter = new TopicFilterBuilder()
+                .WithTopic(topic)
                 .WithAtLeastOnceQoS()
                 .Build();
 
-            await _mqttClient.SubscribeAsync(topicFilter);
+            await _mqttClient.SubscribeAsync(startTopicFilter);
+
+            _logger.LogInformation("Subscribing to topic 'mqtttimer/+/stop'");
         }
 
         private TimerDetails GetTimerDetails(MqttApplicationMessage message)
@@ -173,7 +180,7 @@ namespace MqttTimer
 
             _logger.LogInformation($"Recevied message with Topic '{topic}', Payload '{payload}'");
 
-            if (!string.IsNullOrWhiteSpace(topic))
+            if (string.IsNullOrWhiteSpace(topic))
             {
                 _logger.LogWarning("Ignoring message with empty topic");
                 return null;
@@ -188,7 +195,7 @@ namespace MqttTimer
             }
 
             var payloadJObject = JObject.Parse(payload);
-            Enum.TryParse<CommandType>(topicParts[2], out var command);
+            Enum.TryParse<CommandType>(topicParts[2], ignoreCase: true, out var command);
             return new TimerDetails
             {
                 Name = topicParts[1],
