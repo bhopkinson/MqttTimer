@@ -55,7 +55,7 @@ namespace MqttTimer
             _mqttClient.ApplicationMessageReceived += ApplicationMessageReceived;
         }
 
-        private void ApplicationMessageReceived(object sender, MqttApplicationMessageReceivedEventArgs e)
+        private async void ApplicationMessageReceived(object sender, MqttApplicationMessageReceivedEventArgs e)
         {
             _timersMutex.WaitOne();
 
@@ -119,11 +119,10 @@ namespace MqttTimer
 
             try
             {
-                _logger.LogInformation($"Timer callback for {timerDetails.Name} called.");
-
                 var timerDetails = (TimerDetails)stateInfo;
                 var topic = $"mqtttimer/{timerDetails.Name}";
 
+                _logger.LogInformation($"Timer callback for {timerDetails.Name} called.");
                 _logger.LogInformation($"Publishing payload '{timerDetails.ResponsePayload}' to topic {topic}");
 
                 var managedMqttApplicationMessage = new ManagedMqttApplicationMessageBuilder()
