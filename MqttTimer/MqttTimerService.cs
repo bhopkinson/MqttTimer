@@ -7,7 +7,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Client;
-using MQTTnet.Diagnostics;
 using MQTTnet.Extensions.ManagedClient;
 using Newtonsoft.Json.Linq;
 
@@ -55,7 +54,7 @@ namespace MqttTimer
             _mqttClient.ApplicationMessageReceived += ApplicationMessageReceived;
         }
 
-        private async void ApplicationMessageReceived(object sender, MqttApplicationMessageReceivedEventArgs e)
+        private void ApplicationMessageReceived(object sender, MqttApplicationMessageReceivedEventArgs e)
         {
             _timersMutex.WaitOne();
 
@@ -72,7 +71,7 @@ namespace MqttTimer
                 switch (timerDetails.Command)
                 {
                     case CommandType.Start:
-                        await ClearMqttTopicRetainedMessage(timerDetails);
+                        ClearMqttTopicRetainedMessage(timerDetails).GetAwaiter().GetResult();
                         StartTimer(timerDetails);
                         break;
 
@@ -144,17 +143,26 @@ namespace MqttTimer
 
         private async Task ClearMqttTopicRetainedMessage(TimerDetails timerDetails)
         {
-            var topic = $"mqtttimer/{timerDetails.Name}";
+            _timersMutex.WaitOne();
 
-            var managedMqttApplicationMessage = new ManagedMqttApplicationMessageBuilder()
-                .WithApplicationMessage(new MqttApplicationMessageBuilder()
-                    .WithTopic(topic)
-                    .WithAtLeastOnceQoS()
-                    .WithRetainFlag()
-                    .Build())
-                .Build();
+            try
+            {
+                var topic = $"mqtttimer/{timerDetails.Name}";
 
-            await _mqttClient.PublishAsync(managedMqttApplicationMessage);
+                var managedMqttApplicationMessage = new ManagedMqttApplicationMessageBuilder()
+                    .WithApplicationMessage(new MqttApplicationMessageBuilder()
+                        .WithTopic(topic)
+                        .WithAtLeastOnceQoS()
+                        .WithRetainFlag()
+                        .Build())
+                    .Build();
+
+                await _mqttClient.PublishAsync(managedMqttApplicationMessage);
+            }
+            finally
+            {
+                _timersMutex.ReleaseMutex();
+            }
         }
 
         private async Task StartMqttClient()
