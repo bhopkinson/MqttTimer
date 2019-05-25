@@ -72,6 +72,7 @@ namespace MqttTimer
                 switch (timerDetails.Command)
                 {
                     case CommandType.Start:
+                        ClearMqttTopicRetainedMessage(timerDetails);
                         StartTimer(timerDetails);
                         break;
 
@@ -118,10 +119,11 @@ namespace MqttTimer
 
             try
             {
+                _logger.LogInformation($"Timer callback for {timerDetails.Name} called.");
+
                 var timerDetails = (TimerDetails)stateInfo;
                 var topic = $"mqtttimer/{timerDetails.Name}";
 
-                _logger.LogInformation($"Timer callback for {timerDetails.Name} called.");
                 _logger.LogInformation($"Publishing payload '{timerDetails.ResponsePayload}' to topic {topic}");
 
                 var managedMqttApplicationMessage = new ManagedMqttApplicationMessageBuilder()
@@ -139,6 +141,21 @@ namespace MqttTimer
             {
                 _timersMutex.ReleaseMutex();
             }
+        }
+
+        private async Task ClearMqttTopicRetainedMessage(TimerDetails timerDetails)
+        {
+            var topic = $"mqtttimer/{timerDetails.Name}";
+
+            var managedMqttApplicationMessage = new ManagedMqttApplicationMessageBuilder()
+                .WithApplicationMessage(new MqttApplicationMessageBuilder()
+                    .WithTopic(topic)
+                    .WithAtLeastOnceQoS()
+                    .WithRetainFlag()
+                    .Build())
+                .Build();
+
+            await _mqttClient.PublishAsync(managedMqttApplicationMessage);
         }
 
         private async Task StartMqttClient()
