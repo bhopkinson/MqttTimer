@@ -72,7 +72,7 @@ namespace MqttTimer
                 switch (timerDetails.Command)
                 {
                     case CommandType.Start:
-                        ClearMqttTopicRetainedMessage(timerDetails);
+                        await ClearMqttTopicRetainedMessage(timerDetails);
                         StartTimer(timerDetails);
                         break;
 
